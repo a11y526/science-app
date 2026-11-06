@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 
 // GitHub OAuth 앱(과학 관리)의 Client ID. 공개해도 되는 값. 비어 있으면 GitHub 로그인 단추를 숨긴다.
-const CLIENT_ID: &str = "";
+const CLIENT_ID: &str = "Ov23lih4mfAjdunW1Z1O";
 const UPSTREAM: &str = "a11y526/science-portal";
 const REPO: &str = "science-portal";
 
