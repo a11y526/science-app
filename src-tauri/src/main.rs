@@ -3,6 +3,8 @@
 // 포털 화면에는 앱 기능(IPC)을 열어 주지 않는다(capabilities 없음).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod gh;
+
 use tauri::menu::{Menu, MenuItem, Submenu};
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
@@ -65,6 +67,16 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_opener::init())
+        .manage(gh::Gh::default())
+        .invoke_handler(tauri::generate_handler![
+            gh::gh_ready,
+            gh::gh_start,
+            gh::gh_poll,
+            gh::gh_find,
+            gh::gh_create,
+            gh::gh_open
+        ])
         .setup(|app| {
             let home = MenuItem::with_id(app, "home", "관리 첫 화면", true, None::<&str>)?;
             let reload = MenuItem::with_id(app, "reload", "새로고침", true, Some("F5"))?;

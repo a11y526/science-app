@@ -5,6 +5,7 @@
   "identifier": "io.github.a11y526.scienceadmin",
   "build": { "frontendDist": "../dist" },
   "app": {
+    "withGlobalTauri": true,
     "windows": [],
     "security": { "csp": null }
   },

@@ -8,82 +8,213 @@
   html, body { margin: 0; height: 100%; background: #fff; color: #0D0D0D;
     font-family: "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; }
   body { display: grid; place-items: center; }
-  #wait { color: #8A8A8A; font-size: 15px; }
   .box { display: none; width: min(560px, calc(100% - 48px)); background: #F7F7F7; border-radius: 28px; padding: 40px; box-sizing: border-box; }
+  .box.on { display: block; }
   h1 { margin: 0 0 8px; font-size: 32px; font-weight: 900; letter-spacing: -0.02em; }
   p { margin: 0 0 24px; color: #5D5D5D; font-size: 15px; line-height: 1.6; }
   input { width: 100%; box-sizing: border-box; height: 52px; border: 0; border-radius: 16px; background: #fff;
     padding: 0 18px; font: inherit; font-size: 16px; color: #0D0D0D; outline: none; }
   input:focus { box-shadow: 0 0 0 2px #0D0D0D; }
-  .row { display: flex; gap: 8px; margin-top: 16px; }
+  .row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   button { height: 48px; border: 0; border-radius: 999px; padding: 0 24px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
-  #ok { background: #0D0D0D; color: #fff; }
-  #ok:disabled { opacity: .5; cursor: default; }
-  #back { background: #F0F0F0; color: #0D0D0D; display: none; }
-  .box #back { background: #fff; }
-  #msg { min-height: 22px; margin-top: 14px; font-size: 14px; color: #A23B0B; }
+  button:disabled { opacity: .5; cursor: default; }
+  .main { background: #0D0D0D; color: #fff; }
+  .sub { background: #fff; color: #0D0D0D; }
+  .link { background: none; padding: 0; height: auto; margin-top: 20px; color: #8A8A8A; font-weight: 500; font-size: 14px; text-decoration: underline; }
+  .code { background: #fff; border-radius: 20px; padding: 22px; text-align: center; font-size: 40px; font-weight: 900;
+    letter-spacing: .12em; font-variant-numeric: tabular-nums; user-select: all; }
+  .msg { min-height: 22px; margin-top: 14px; font-size: 14px; color: #A23B0B; }
+  .wait { color: #8A8A8A; font-size: 15px; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #C9C9C9; border-top-color: #0D0D0D;
+    border-radius: 50%; animation: s 0.8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes s { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div id="wait">여는 중…</div>
-<form class="box" id="form">
+
+<div id="v-wait" class="wait"><span class="spin"></span><span id="wait-t">여는 중…</span></div>
+
+<div id="v-start" class="box">
+  <h1>과학 관리</h1>
+  <p>GitHub로 로그인하면 내 포털을 찾아 열어 줘요.<br>포털이 아직 없으면 만들어 줘요.</p>
+  <div class="row"><button class="main" id="b-login">GitHub로 로그인</button></div>
+  <button class="link" id="b-manual">주소를 직접 넣기</button>
+  <div class="msg" id="m-start"></div>
+</div>
+
+<div id="v-code" class="box">
+  <h1>코드 넣기</h1>
+  <p>브라우저에 열린 GitHub 화면에 아래 코드를 넣고 [Authorize]를 눌러 주세요.</p>
+  <div class="code" id="code"></div>
+  <div class="row">
+    <button class="sub" id="b-copy">코드 복사</button>
+    <button class="sub" id="b-reopen">GitHub 화면 다시 열기</button>
+  </div>
+  <div class="msg wait" id="m-code"><span class="spin"></span>승인을 기다리는 중</div>
+</div>
+
+<div id="v-make" class="box">
+  <h1>내 포털 만들기</h1>
+  <p id="make-t"></p>
+  <div class="row"><button class="main" id="b-make">만들기</button></div>
+  <div class="msg" id="m-make"></div>
+</div>
+
+<form id="v-manual" class="box">
   <h1>포털 주소</h1>
   <p>내 과학 포털 주소를 넣어 주세요.<br>예: https://아이디.github.io/science-portal/</p>
   <input id="url" type="text" autocomplete="off" spellcheck="false" placeholder="https://아이디.github.io/science-portal/">
   <div class="row">
-    <button id="ok" type="submit">열기</button>
-    <button id="back" type="button">취소</button>
+    <button class="main" id="b-ok" type="submit">열기</button>
+    <button class="sub" id="b-back" type="button">취소</button>
   </div>
-  <div id="msg"></div>
+  <div class="msg" id="m-manual"></div>
 </form>
+
 <script>
   const KEY = 'portal';
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const call = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
   const saved = localStorage.getItem(KEY);
   const setup = new URLSearchParams(location.search).has('setup');
-  const open = base => location.replace(base + 'teacher/');
 
-  if (saved && !setup) {
-    open(saved);
-  } else {
-    document.getElementById('wait').style.display = 'none';
-    const form = document.getElementById('form');
-    const input = document.getElementById('url');
-    const ok = document.getElementById('ok');
-    const msg = document.getElementById('msg');
-    const back = document.getElementById('back');
-    form.style.display = 'block';
-    if (saved) { input.value = saved; back.style.display = 'inline-block'; back.onclick = () => open(saved); }
-    input.focus();
-
-    // 주소 다듬기: https:// 붙이기, teacher/·index.html 같은 뒤쪽 빼기, 끝에 / 붙이기
-    function tidy(s) {
-      s = s.trim();
-      if (!s) return null;
-      if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
-      let u;
-      try { u = new URL(s); } catch { return null; }
-      let p = u.pathname.replace(/(teacher\/.*|teacher|[^/]+\.html)$/i, '');
-      if (!p.endsWith('/')) p += '/';
-      return u.origin + p;
+  function show(id, text) {
+    for (const v of ['v-wait', 'v-start', 'v-code', 'v-make', 'v-manual']) {
+      const el = $(v);
+      el.classList.toggle('on', v === id);
+      if (v === 'v-wait') el.style.display = v === id ? '' : 'none';
     }
-
-    form.onsubmit = async e => {
-      e.preventDefault();
-      msg.textContent = '';
-      const base = tidy(input.value);
-      if (!base) { msg.textContent = '주소를 다시 확인해 주세요.'; return; }
-      ok.disabled = true; ok.textContent = '확인하는 중…';
-      try {
-        const r = await fetch(base + 'assets/js/site.js', { cache: 'no-store' });
-        if (!r.ok) throw 0;
-        localStorage.setItem(KEY, base);
-        open(base);
-      } catch {
-        msg.textContent = '이 주소에서 포털을 찾지 못했어요. 주소와 인터넷 연결을 확인해 주세요.';
-        ok.disabled = false; ok.textContent = '열기';
-      }
-    };
+    if (id === 'v-wait') $('wait-t').textContent = text || '여는 중…';
   }
+
+  // 주소 다듬기: https:// 붙이기, teacher/·index.html 같은 뒤쪽 빼기, 끝에 / 붙이기
+  function tidy(s) {
+    s = (s || '').trim();
+    if (!s) return null;
+    if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    let u;
+    try { u = new URL(s); } catch { return null; }
+    let p = u.pathname.replace(/(teacher\/.*|teacher|[^/]+\.html)$/i, '');
+    if (!p.endsWith('/')) p += '/';
+    return u.origin + p;
+  }
+
+  // 그 주소의 site.js: 없으면 null, 있으면 설치됐는지
+  async function probe(base, ms = 8000) {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    try {
+      const r = await fetch(base + 'assets/js/site.js', { cache: 'no-store', signal: c.signal });
+      if (!r.ok) return null;
+      const text = await r.text();
+      return { installed: !/YOUR-PROJECT-URL|YOUR-PUBLISHABLE-KEY/.test(text) };
+    } catch { return null; } finally { clearTimeout(t); }
+  }
+
+  // 설치된 포털이면 관리 화면, 아니면 설치 도우미
+  function go(base, installed) {
+    localStorage.setItem(KEY, base);
+    location.replace(base + (installed ? 'teacher/' : 'setup.html'));
+  }
+
+  // 사이트가 열릴 때까지 기다림(Pages를 막 켰으면 1~3분)
+  async function waitSite(base) {
+    for (let i = 0; i < 120; i++) {
+      show('v-wait', i < 2 ? '포털 확인하는 중…' : '포털 사이트를 여는 중이에요 (처음엔 1~3분)');
+      const r = await probe(base);
+      if (r) return go(base, r.installed);
+      await sleep(5000);
+    }
+    show('v-start');
+    $('m-start').textContent = '포털 사이트가 아직 안 열려요. 잠시 뒤 다시 해 주세요.';
+  }
+
+  // ---------- GitHub 로그인 ----------
+  let codeUri = 'https://github.com/login/device';
+  $('b-login').onclick = async () => {
+    $('m-start').textContent = '';
+    $('b-login').disabled = true;
+    try {
+      const d = await call('gh_start');
+      codeUri = d.uri;
+      $('code').textContent = d.code;
+      show('v-code');
+      let gap = (d.interval || 5) * 1000;
+      for (;;) {
+        await sleep(gap);
+        const st = await call('gh_poll');
+        if (st === 'ok') break;
+        if (st === 'slow_down') { gap += 5000; continue; }
+        if (st === 'authorization_pending') continue;
+        throw new Error(st === 'access_denied' ? '승인하지 않았어요.' : '코드 시간이 지났어요. 다시 로그인해 주세요.');
+      }
+      await afterLogin();
+    } catch (e) {
+      show('v-start');
+      $('m-start').textContent = e.message && !/^[A-Z_]+/.test(e.message) ? e.message : '로그인하지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.';
+    } finally { $('b-login').disabled = false; }
+  };
+  $('b-copy').onclick = () => navigator.clipboard.writeText($('code').textContent).then(() => { $('b-copy').textContent = '복사함'; });
+  $('b-reopen').onclick = () => call('gh_open', { url: codeUri });
+
+  async function afterLogin() {
+    show('v-wait', '내 포털 찾는 중…');
+    const f = await call('gh_find');
+    if (f.repo && f.pages) return waitSite(f.url);
+    $('make-t').innerHTML = f.repo
+      ? `<b>${f.login}/science-portal</b> 저장소는 있는데 사이트(GitHub Pages)가 꺼져 있어요. [만들기]를 누르면 켜요.`
+      : `<b>${f.login}</b> 계정에 아직 포털이 없어요. [만들기]를 누르면 과학 포털을 내 GitHub에 복사(Fork)하고 사이트를 켜요.`;
+    show('v-make');
+  }
+
+  $('b-make').onclick = async () => {
+    $('m-make').textContent = '';
+    $('b-make').disabled = true;
+    show('v-wait', '내 포털 만드는 중… (1분쯤)');
+    try {
+      const url = await call('gh_create');
+      await waitSite(url);
+    } catch (e) {
+      show('v-make');
+      $('m-make').textContent = '만들지 못했어요. 잠시 뒤 다시 눌러 주세요. (' + e + ')';
+    } finally { $('b-make').disabled = false; }
+  };
+
+  // ---------- 주소 직접 넣기 ----------
+  function manual() {
+    show('v-manual');
+    const back = $('b-back');
+    if (saved) { $('url').value = saved; back.onclick = () => go(saved, true); }
+    else if ($('b-login').style.display === 'none') back.style.display = 'none';
+    else back.onclick = () => show('v-start');
+    $('url').focus();
+  }
+  $('b-manual').onclick = manual;
+  $('v-manual').onsubmit = async e => {
+    e.preventDefault();
+    $('m-manual').textContent = '';
+    const base = tidy($('url').value);
+    if (!base) { $('m-manual').textContent = '주소를 다시 확인해 주세요.'; return; }
+    $('b-ok').disabled = true; $('b-ok').textContent = '확인하는 중…';
+    const r = await probe(base);
+    $('b-ok').disabled = false; $('b-ok').textContent = '열기';
+    if (!r) { $('m-manual').textContent = '이 주소에서 포털을 찾지 못했어요. 주소와 인터넷 연결을 확인해 주세요.'; return; }
+    go(base, r.installed);
+  };
+
+  // ---------- 처음 ----------
+  (async () => {
+    if (saved && !setup) {
+      const r = await probe(saved, 4000);
+      // 연결이 안 되면 그냥 관리 화면(앱이 멈춰 보이지 않게)
+      return go(saved, r ? r.installed : true);
+    }
+    let ready = false;
+    try { ready = await call('gh_ready'); } catch {}
+    if (!ready) { $('b-login').style.display = 'none'; $('b-manual').style.display = 'none'; return manual(); }
+    show('v-start');
+  })();
 </script>
 </body>
 </html>

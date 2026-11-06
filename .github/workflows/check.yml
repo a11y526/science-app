@@ -1,0 +1,15 @@
+# main에 올릴 때마다 컴파일만 확인(릴리스는 안 만듦)
+name: check
+on:
+  push:
+    branches: [main]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      - run: cargo check --manifest-path src-tauri/Cargo.toml
