@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>과학 관리</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; color: #0D0D0D;
+    font-family: "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; }
+  body { display: grid; place-items: center; }
+  #wait { color: #8A8A8A; font-size: 15px; }
+  .box { display: none; width: min(560px, calc(100% - 48px)); background: #F7F7F7; border-radius: 28px; padding: 40px; box-sizing: border-box; }
+  h1 { margin: 0 0 8px; font-size: 32px; font-weight: 900; letter-spacing: -0.02em; }
+  p { margin: 0 0 24px; color: #5D5D5D; font-size: 15px; line-height: 1.6; }
+  input { width: 100%; box-sizing: border-box; height: 52px; border: 0; border-radius: 16px; background: #fff;
+    padding: 0 18px; font: inherit; font-size: 16px; color: #0D0D0D; outline: none; }
+  input:focus { box-shadow: 0 0 0 2px #0D0D0D; }
+  .row { display: flex; gap: 8px; margin-top: 16px; }
+  button { height: 48px; border: 0; border-radius: 999px; padding: 0 24px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  #ok { background: #0D0D0D; color: #fff; }
+  #ok:disabled { opacity: .5; cursor: default; }
+  #back { background: #F0F0F0; color: #0D0D0D; display: none; }
+  .box #back { background: #fff; }
+  #msg { min-height: 22px; margin-top: 14px; font-size: 14px; color: #A23B0B; }
+</style>
+</head>
+<body>
+<div id="wait">여는 중…</div>
+<form class="box" id="form">
+  <h1>포털 주소</h1>
+  <p>내 과학 포털 주소를 넣어 주세요.<br>예: https://아이디.github.io/science-portal/</p>
+  <input id="url" type="text" autocomplete="off" spellcheck="false" placeholder="https://아이디.github.io/science-portal/">
+  <div class="row">
+    <button id="ok" type="submit">열기</button>
+    <button id="back" type="button">취소</button>
+  </div>
+  <div id="msg"></div>
+</form>
+<script>
+  const KEY = 'portal';
+  const saved = localStorage.getItem(KEY);
+  const setup = new URLSearchParams(location.search).has('setup');
+  const open = base => location.replace(base + 'teacher/');
+
+  if (saved && !setup) {
+    open(saved);
+  } else {
+    document.getElementById('wait').style.display = 'none';
+    const form = document.getElementById('form');
+    const input = document.getElementById('url');
+    const ok = document.getElementById('ok');
+    const msg = document.getElementById('msg');
+    const back = document.getElementById('back');
+    form.style.display = 'block';
+    if (saved) { input.value = saved; back.style.display = 'inline-block'; back.onclick = () => open(saved); }
+    input.focus();
+
+    // 주소 다듬기: https:// 붙이기, teacher/·index.html 같은 뒤쪽 빼기, 끝에 / 붙이기
+    function tidy(s) {
+      s = s.trim();
+      if (!s) return null;
+      if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+      let u;
+      try { u = new URL(s); } catch { return null; }
+      let p = u.pathname.replace(/(teacher\/.*|teacher|[^/]+\.html)$/i, '');
+      if (!p.endsWith('/')) p += '/';
+      return u.origin + p;
+    }
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      msg.textContent = '';
+      const base = tidy(input.value);
+      if (!base) { msg.textContent = '주소를 다시 확인해 주세요.'; return; }
+      ok.disabled = true; ok.textContent = '확인하는 중…';
+      try {
+        const r = await fetch(base + 'assets/js/site.js', { cache: 'no-store' });
+        if (!r.ok) throw 0;
+        localStorage.setItem(KEY, base);
+        open(base);
+      } catch {
+        msg.textContent = '이 주소에서 포털을 찾지 못했어요. 주소와 인터넷 연결을 확인해 주세요.';
+        ok.disabled = false; ok.textContent = '열기';
+      }
+    };
+  }
+</script>
+</body>
+</html>
