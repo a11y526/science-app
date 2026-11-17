@@ -3,7 +3,7 @@
 과학 포털의 관리 화면을 윈도우 앱 창으로 엽니다.
 
 ## 설치
-1. [최신 릴리스](https://github.com/a11y526/science-app/releases/latest)에서 `ScienceAdmin_…_x64-setup.exe`를 받아 실행합니다.
+1. [최신 릴리스](https://github.com/konapejet/science-app/releases/latest)에서 `ScienceAdmin_…_x64-setup.exe`를 받아 실행합니다.
 2. "Windows의 PC 보호" 창이 뜨면 [추가 정보] → [실행]을 누릅니다(처음 한 번).
 3. 앱이 켜지면 내 포털 주소(예: `https://아이디.github.io/science-portal/`)를 넣고 [열기].
 

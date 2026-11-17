@@ -24,7 +24,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5RDE5OTRCNEI2OUY4Q0EKUldUSytHbExTNW5SbVZFTjFKbE5qSDBXcGhCUTFuNjFnRTdoa0NaeGxXczdWOUNxRTlGbUlTbjQK",
-      "endpoints": ["https://github.com/a11y526/science-app/releases/latest/download/latest.json"],
+      "endpoints": ["https://github.com/konapejet/science-app/releases/latest/download/latest.json"],
       "windows": { "installMode": "passive" }
     }
   }
